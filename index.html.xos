@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dell OptiPlex 7050 SFF | Tic Tac Toe</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; cursor: none !important; }
+        html { scrollbar-width: none; -ms-overflow-style: none; scroll-behavior: smooth; }
+        html::-webkit-scrollbar { display: none; }
+
+        /* Reinforce cursor hiding on all interactive elements and states */
+        a, button, .cell, .select-trigger, .custom-option, *:active {
+            cursor: none !important;
+        }
+
+        :root {
+            --bg: #050505;
+            --dell-blue: #0076ce;
+            --text-main: #ffffff;
+            --text-dim: #b0b0b0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: transparent;
+            color: var(--text-main);
+            overflow-x: hidden;
+        }
+
+        .nav-bar {
+            background: rgba(0,0,0,0.8);
+            padding: 20px 0;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid #111;
+            backdrop-filter: blur(10px);
+            will-change: transform;
+        }
+        .nav-bar a {
+            color: white; text-decoration: none; margin: 0 15px; font-weight: 700; transition: color 0.3s;
+        }
+        .nav-bar a:hover { color: var(--dell-blue); }
+
+        #particle-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            background-color: var(--bg); pointer-events: none;
+        }
+
+        .game-container {
+            height: calc(100vh - 80px);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+
+        h1 { margin-bottom: 30px; font-weight: 900; letter-spacing: -1px; }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .cell {
+            width: 100px; height: 100px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.5rem; font-weight: 900;
+            transition: 0.3s; border: 1px solid transparent;
+        }
+        .cell:hover { background: rgba(0, 118, 206, 0.2); border-color: var(--dell-blue); }
+        .cell.x { color: var(--dell-blue); }
+        .cell.o { color: #ff4b2b; }
+
+        .status { 
+            margin-bottom: 25px; 
+            font-size: 1.8rem; 
+            font-weight: 700; 
+            color: var(--text-main);
+            text-shadow: 0 0 15px rgba(0, 118, 206, 0.4);
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 150px;
+            margin-top: 25px;
+            align-items: center;
+        }
+
+        .select-group {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        /* Custom Dropdown Styles */
+        .custom-select {
+            position: relative;
+            min-width: 150px;
+            user-select: none;
+        }
+
+        .select-trigger {
+            background: rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-family: inherit;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: 0.3s;
+        }
+
+        .select-trigger:hover {
+            border-color: var(--dell-blue);
+        }
+
+        .options-list {
+            position: absolute;
+            top: calc(100% + 10px);
+            left: 0;
+            right: 0;
+            background: rgba(15, 15, 15, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            display: none;
+            flex-direction: column;
+            z-index: 2000;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+
+        .options-list.show { display: flex; }
+
+        .custom-option {
+            padding: 12px 20px;
+            transition: 0.2s;
+            color: var(--text-dim);
+        }
+
+        .custom-option:hover {
+            background: var(--dell-blue);
+            color: white;
+        }
+
+        .select-trigger::after {
+            content: "";
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 5px solid white;
+            margin-left: 10px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 60px;
+        }
+
+        .reset-btn {
+            padding: 18px 40px;
+            background: var(--dell-blue);
+            color: white; border: none; border-radius: 20px;
+            font-weight: 700; text-transform: uppercase; transition: 0.3s; font-size: 1.15rem;
+        }
+
+        .home-link-btn {
+            padding: 18px 40px;
+            background: rgba(255, 255, 255, 0.05);
+            color: white; border: 1px solid rgba(255, 255, 255, 0.2); 
+            border-radius: 20px; text-decoration: none;
+            font-weight: 700; text-transform: uppercase; transition: 0.3s;
+            font-size: 1.15rem; display: flex; align-items: center;
+        }
+        .reset-btn:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0, 118, 206, 0.4); }
+
+        .custom-cursor {
+            width: 20px; height: 20px; border: 2px solid var(--dell-blue);
+            background-color: black; border-radius: 50%; position: fixed;
+            pointer-events: none; z-index: 10000; transform: translate(-50%, -50%);
+            transition: background-color 0.1s, border-color 0.1s, opacity 0.2s; opacity: 0;
+        }
+
+        .custom-cursor.flash {
+            background-color: white;
+            border-color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="nav-bar">
+        <a href="Optiplex 7050 sff Updated.html">Home</a>
+        <a href="about.html">About Us</a>
+        <a href="tictactoe.html" style="color: var(--dell-blue)">Play Game</a>
+        <a href="contact.html">Contact</a>
+        <a href="digital-ocarina.html">Ocarina</a>
+    </div>
+
+    <canvas id="particle-canvas"></canvas>
+
+    <div class="game-container">
+        <h1>Xs and <span style="color:var(--dell-blue)">Os</span></h1>
+        <div class="status" id="status">Player X's Turn</div>
+        <div class="board" id="board">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+        </div>
+        
+        <div class="controls">
+            <div class="select-group">
+                <span>Mode:</span>
+                <div class="custom-select" id="modeContainer">
+                    <div class="select-trigger" id="modeTrigger">vs AI</div>
+                    <div class="options-list" id="modeOptions">
+                        <div class="custom-option" data-value="ai">vs AI</div>
+                        <div class="custom-option" data-value="pvp">2 Players</div>
+                    </div>
+                </div>
+
+                <span id="diffLabel">Difficulty:</span>
+                <div class="custom-select" id="diffContainer">
+                    <div class="select-trigger" id="diffTrigger">Hard</div>
+                    <div class="options-list" id="diffOptions">
+                        <div class="custom-option" data-value="easy">Easy</div>
+                        <div class="custom-option" data-value="medium">Medium</div>
+                        <div class="custom-option" data-value="hard">Hard</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button class="reset-btn" id="reset">Reset Game</button>
+                <a href="Optiplex 7050 sff Updated.html" class="home-link-btn">Return Home</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tic Tac Toe Logic
+        const board = document.getElementById('board');
+        const cells = document.querySelectorAll('.cell');
+        const status = document.getElementById('status');
+        const resetBtn = document.getElementById('reset');
+        
+        const diffLabel = document.getElementById('diffLabel');
+        
+        let currentPlayer = 'X';
+        let gameState = ["", "", "", "", "", "", "", "", ""];
+        let gameActive = true;
+        let selectedMode = 'ai';
+        let selectedDiff = 'hard';
+
+        const winningConditions = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
+        ];
+
+        function handleCellClick(e) {
+            const clickedCell = e.target;
+            const index = clickedCell.getAttribute('data-index');
+            
+            if (gameState[index] !== "" || !gameActive) return;
+            if (selectedMode === 'ai' && currentPlayer !== 'X') return;
+
+            gameState[index] = currentPlayer;
+            clickedCell.innerText = currentPlayer;
+            clickedCell.classList.add(currentPlayer.toLowerCase());
+
+            checkResult();
+
+            if (gameActive && currentPlayer === 'O' && selectedMode === 'ai') {
+                status.innerText = "AI is thinking...";
+                setTimeout(makeAIMove, 600);
+            }
+        }
+
+        // Check for win, draw, or switch player
+        function checkResult() {
+            let roundWon = false;
+            for (let i = 0; i < winningConditions.length; i++) {
+                const [a, b, c] = winningConditions[i];
+                if (gameState[a] && gameState[a] === gameState[b] && gameState[a] === gameState[c]) {
+                    roundWon = true;
+                    break;
+                }
+            }
+
+            if (roundWon) {
+                status.innerText = `Player ${currentPlayer} Wins!`;
+                gameActive = false;
+                return;
+            }
+
+            if (!gameState.includes("")) {
+                status.innerText = "Draw!";
+                gameActive = false;
+                return;
+            }
+
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            status.innerText = `Player ${currentPlayer}'s Turn`;
+        }
+
+        // AI Logic using Minimax
+        function makeAIMove() {
+            let move;
+
+            if (selectedDiff === 'easy') {
+                move = getRandomMove();
+            } else if (selectedDiff === 'medium') {
+                move = Math.random() > 0.5 ? getBestMove() : getRandomMove();
+            } else {
+                move = getBestMove();
+            }
+
+            if (move !== undefined) {
+                gameState[move] = "O";
+                cells[move].innerText = "O";
+                cells[move].classList.add('o');
+                checkResult();
+            }
+        }
+
+        function getRandomMove() {
+            let availableMoves = [];
+            for (let i = 0; i < 9; i++) {
+                if (gameState[i] === "") availableMoves.push(i);
+            }
+            return availableMoves[Math.floor(Math.random() * availableMoves.length)];
+        }
+
+        function getBestMove() {
+            let bestScore = -Infinity;
+            let move;
+            for (let i = 0; i < 9; i++) {
+                if (gameState[i] === "") {
+                    gameState[i] = "O";
+                    let score = minimax(gameState, 0, false);
+                    gameState[i] = "";
+                    if (score > bestScore) {
+                        bestScore = score;
+                        move = i;
+                    }
+                }
+            }
+            return move;
+        }
+
+        const scores = { X: -1, O: 1, draw: 0 };
+
+        function minimax(board, depth, isMaximizing) {
+            let result = checkWinnerRaw();
+            if (result !== null) return scores[result];
+
+            if (isMaximizing) {
+                let bestScore = -Infinity;
+                for (let i = 0; i < 9; i++) {
+                    if (board[i] === "") {
+                        board[i] = "O";
+                        let score = minimax(board, depth + 1, false);
+                        board[i] = "";
+                        bestScore = Math.max(score, bestScore);
+                    }
+                }
+                return bestScore;
+            } else {
+                let bestScore = Infinity;
+                for (let i = 0; i < 9; i++) {
+                    if (board[i] === "") {
+                        board[i] = "X";
+                        let score = minimax(board, depth + 1, true);
+                        board[i] = "";
+                        bestScore = Math.min(score, bestScore);
+                    }
+                }
+                return bestScore;
+            }
+        }
+
+        function checkWinnerRaw() {
+            for (let i = 0; i < winningConditions.length; i++) {
+                const [a, b, c] = winningConditions[i];
+                if (gameState[a] && gameState[a] === gameState[b] && gameState[a] === gameState[c]) return gameState[a];
+            }
+            if (!gameState.includes("")) return 'draw';
+            return null;
+        }
+
+        function resetGame() {
+            currentPlayer = 'X';
+            gameState = ["", "", "", "", "", "", "", "", ""];
+            gameActive = true;
+            status.innerText = "Player X's Turn";
+            cells.forEach(cell => {
+                cell.innerText = "";
+                cell.classList.remove('x', 'o');
+            });
+        }
+
+        cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+        resetBtn.addEventListener('click', resetGame);
+        
+        // Custom Dropdown Logic
+        function setupDropdown(triggerId, optionsId, onSelect) {
+            const trigger = document.getElementById(triggerId);
+            const options = document.getElementById(optionsId);
+            
+            trigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                options.classList.toggle('show');
+            });
+
+            options.querySelectorAll('.custom-option').forEach(opt => {
+                opt.addEventListener('click', () => {
+                    const val = opt.getAttribute('data-value');
+                    trigger.innerText = opt.innerText;
+                    options.classList.remove('show');
+                    onSelect(val);
+                });
+            });
+        }
+
+        setupDropdown('modeTrigger', 'modeOptions', (val) => {
+            selectedMode = val;
+            const isPvP = val === 'pvp';
+            document.getElementById('diffContainer').style.display = isPvP ? 'none' : 'block';
+            diffLabel.style.display = isPvP ? 'none' : 'block';
+            resetGame();
+        });
+
+        setupDropdown('diffTrigger', 'diffOptions', (val) => {
+            selectedDiff = val;
+            resetGame();
+        });
+
+        // Close dropdowns when clicking elsewhere
+        window.addEventListener('click', () => {
+            document.getElementById('modeOptions').classList.remove('show');
+            document.getElementById('diffOptions').classList.remove('show');
+        });
+
+        // Particles Logic
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        function init() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            particles = [];
+            const particleCount = Math.min(Math.floor((canvas.width * canvas.height) / 50000), 60);
+            for(let i=0; i<particleCount; i++) {
+                particles.push({
+                    x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+                    vx: (Math.random()-0.5)*0.5, vy: (Math.random()-0.5)*0.5, size: Math.random()*1.5+0.5
+                });
+            }
+        }
+        function animate() {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            ctx.fillStyle = 'rgba(0, 118, 206, 0.4)';
+            particles.forEach(p => {
+                p.x += p.vx; p.y += p.vy;
+                if(p.x<0 || p.x>canvas.width) p.vx*=-1;
+                if(p.y<0 || p.y>canvas.height) p.vy*=-1;
+                ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,Math.PI*2); ctx.fill();
+            });
+            requestAnimationFrame(animate);
+        }
+        window.addEventListener('resize', init);
+        init(); animate();
+
+        // Custom Cursor
+        const cursor = document.createElement('div');
+        cursor.className = 'custom-cursor';
+        document.body.appendChild(cursor);
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+            cursor.style.opacity = '1';
+        });
+    </script>
+</body>
+</html>
